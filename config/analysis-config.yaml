@@ -1,10 +1,10 @@
 project:
   title: "Training-Data Barriers and Mitigation Strategies in Weed Detection, Classification and Segmentation"
-  expected_studies: 139
-  authoritative_dataset: "Ready Analysis dataset.xlsx"
+  expected_studies: 199
+  authoritative_dataset: "ARD-Analysis Ready Dataset.xlsx"
 
 analysis:
-  task_order: [Detection, Segmentation, Classification]
+  task_order: [Detection, Classification, Segmentation]
   primary_metrics:
     Detection: mAP@0.5
     Classification: Accuracy

@@ -22,14 +22,13 @@ from common.Messages import (
     register_count_mismatch,
     register_duplicate,
     register_status_unknown,
-    rq6_strategy_mismatch,
     selected_result_reused,
     study_master_duplicate,
     study_master_row_mismatch,
 )
 
 KNOWN_STATUSES = {STATUS_ELIGIBLE, STATUS_INELIGIBLE, STATUS_PENDING}
-REGISTER_KEY = ["Study ID", "Baseline Study Instance ID"]
+REGISTER_KEY = ["Selected Source Result Row"]
 
 
 def duplicate_key_count(frame: pd.DataFrame, cols: list[str]) -> int:
@@ -85,7 +84,7 @@ def analysis_ready_validation(raw: dict[str, pd.DataFrame], ready: dict[str, pd.
         failures.append(quality_duplicate())
     if checks["barrier_profile_rows"] != checks["barrier_rows"] or checks["mitigation_profile_rows"] != checks["mitigation_rows"]:
         failures.append(profile_count_mismatch())
-    if checks["register_rows"] != checks["baseline_rows"]:
+    if checks["register_rows"] != checks["mitigation_result_rows"]:
         failures.append(register_count_mismatch())
     if checks["duplicate_baseline_contexts"] != 0:
         failures.append(register_duplicate())
@@ -111,10 +110,6 @@ def analysis_ready_validation(raw: dict[str, pd.DataFrame], ready: dict[str, pd.
 def statistics_validation(frames: dict[str, pd.DataFrame], tables: dict[str, pd.DataFrame], cfg: dict, question_map: dict) -> dict:
     effects = tables["rq3_study_gains"]
     synthesis = tables["rq3_task_synthesis"]
-    included = tables["rq6_included_papers"]
-    excluded = tables["rq6_excluded_papers"]
-    strategies = frames["mitigation_profile"].dropna(subset=["Mitigation Strategy"]).groupby("Study ID")["Mitigation Strategy"].nunique()
-    included_counts = included["Study ID"].map(strategies)
     performance = frames["performance_results"]
     expected_metric = performance["Task"].map(cfg["analysis"]["primary_metrics"])
     bootstrap = cfg["bootstrap"]
@@ -122,13 +117,11 @@ def statistics_validation(frames: dict[str, pd.DataFrame], tables: dict[str, pd.
     checks = {
         "study_level_rows": int(len(effects)),
         "performance_rows": int(len(frames["performance_results"])),
+        "performance_studies": int(performance["Study ID"].nunique()),
         "duplicate_study_effects": int(effects["Study ID"].duplicated().sum()),
         "negative_gains": int((effects["study_gain"] < 0).sum()),
         "synthesis_tasks": synthesis["Task"].tolist(),
         "meaningful_column_present": "Meaningful n" in synthesis.columns or "Meaningful %" in synthesis.columns,
-        "rq6_included_studies": int(included["Study ID"].nunique()),
-        "rq6_excluded_studies": int(excluded["Study ID"].nunique()),
-        "rq6_several_strategy_included": int(included_counts.gt(1).sum()),
         "metric_mismatches": int((performance["Metric Family"].astype(str) != expected_metric.astype(str)).sum()),
         "bootstrap_statistic": bootstrap["statistic"],
         "bootstrap_interval": bootstrap["interval"],
@@ -137,16 +130,14 @@ def statistics_validation(frames: dict[str, pd.DataFrame], tables: dict[str, pd.
         "repeated_mapped_tables": sorted({name for name in listed if listed.count(name) > 1}),
     }
     failures = []
-    if checks["study_level_rows"] != checks["performance_rows"] or checks["duplicate_study_effects"] != 0:
+    if checks["study_level_rows"] != checks["performance_studies"] or checks["duplicate_study_effects"] != 0:
+        failures.append(study_gain_count_mismatch())
+    if set(effects["Study ID"]) != set(performance["Study ID"]):
         failures.append(study_gain_count_mismatch())
     if checks["negative_gains"] == 0:
         failures.append(negative_gains_missing())
     if checks["meaningful_column_present"] or checks["synthesis_tasks"] != list(cfg["analysis"]["task_order"]):
         failures.append(synthesis_invalid())
-    if checks["rq6_several_strategy_included"] != 0:
-        failures.append(rq6_strategy_mismatch())
-    if checks["rq6_included_studies"] + checks["rq6_excluded_studies"] != checks["study_level_rows"]:
-        failures.append(rq6_strategy_mismatch())
     if checks["metric_mismatches"] != 0:
         failures.append(metric_mismatch())
     if checks["bootstrap_statistic"] != "median" or checks["bootstrap_interval"] != "percentile":

@@ -150,11 +150,11 @@ def removed_previous_table(name):
 
 
 def register_count_mismatch():
-    return "Comparison register does not preserve one row per baseline context"
+    return "Comparison register does not preserve one row per mitigation result"
 
 
 def register_duplicate():
-    return "Comparison register contains duplicate baseline contexts"
+    return "Comparison register contains duplicate result rows"
 
 
 def pending_remain():
@@ -222,7 +222,7 @@ def rq6_strategy_mismatch():
 
 
 def study_gain_count_mismatch():
-    return "Study-level gains do not match the selected comparisons"
+    return "Study-level gains do not match the papers in the selected comparisons"
 
 
 def synthesis_invalid():

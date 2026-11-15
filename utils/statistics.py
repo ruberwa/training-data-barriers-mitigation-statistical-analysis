@@ -21,11 +21,22 @@ def bootstrap_stat(values, statistic=np.median, repetitions=10000, seed=0, level
     return float(low), float(high), draws
 
 
+def tidy_frame(frame, places=6):
+    out = frame.copy()
+    for column in out.columns:
+        if pd.api.types.is_float_dtype(out[column]):
+            out[column] = out[column].round(places)
+    return out
+
+
 def study_level_effects(performance):
     frame = performance.copy()
-    frame["study_gain"] = pd.to_numeric(frame["Signed Gain (pp)"], errors="coerce")
-    frame["study_baseline"] = pd.to_numeric(frame["Baseline (%)"], errors="coerce")
-    return frame[["Task", "Study ID", "study_gain", "study_baseline"]].drop_duplicates(["Task", "Study ID"])
+    frame["Signed Gain (pp)"] = pd.to_numeric(frame["Signed Gain (pp)"], errors="coerce")
+    frame["Baseline (%)"] = pd.to_numeric(frame["Baseline (%)"], errors="coerce")
+    return frame.groupby(["Task", "Study ID"], as_index=False).agg(
+        study_gain=("Signed Gain (pp)", "median"),
+        study_baseline=("Baseline (%)", "median"),
+    )
 
 
 def synthesis_summary(study_effects, repetitions, seed, level=0.95, task_order=None):

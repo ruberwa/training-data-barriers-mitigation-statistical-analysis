@@ -38,7 +38,11 @@ def read_raw_ard(path: Path = DATA_FILE) -> dict[str, pd.DataFrame]:
     frames = {}
     for key, (sheet, header) in RAW_SHEETS.items():
         frame = pd.read_excel(path, sheet_name=sheet, header=header, engine="openpyxl")
-        frames[key] = frame.dropna(axis=0, how="all").dropna(axis=1, how="all")
+        frame = frame.dropna(axis=0, how="all").dropna(axis=1, how="all")
+        if "Study ID" in frame.columns:
+            study_id = frame["Study ID"].map(lambda value: value.strip() if isinstance(value, str) else value)
+            frame = frame.loc[study_id.notna() & study_id.astype(str).str.strip().ne("")].copy()
+        frames[key] = frame.reset_index(drop=True)
     return frames
 
 

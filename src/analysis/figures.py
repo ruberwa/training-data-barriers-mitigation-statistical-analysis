@@ -70,8 +70,8 @@ def _style(ax, grid_axis: str = "y") -> None:
     ax.set_axisbelow(True)
 
 
-def _forest(ax, x, low, high, y, color, marker="o", ms=4.5) -> None:
-    ax.errorbar(x, y, xerr=[[max(x - low, 0)], [max(high - x, 0)]], fmt=marker, color=color, ecolor=color, ms=ms, lw=1.1, capsize=2)
+def _forest(ax, x, low, high, y, color, marker="o", ms=4.5, alpha=1.0) -> None:
+    ax.errorbar(x, y, xerr=[[max(x - low, 0)], [max(high - x, 0)]], fmt=marker, color=color, ecolor=color, ms=ms, lw=1.1, capsize=2, alpha=alpha)
 
 
 def _regression(x, y, grid):
@@ -102,6 +102,8 @@ def _iso3(country: str):
         "Turkey": "TUR",
         "UK": "GBR",
         "United Kingdom": "GBR",
+        "Russia": "RUS",
+        "Russian Federation": "RUS",
     }
     if not name or name.lower() in {"nan", "not reported", "none"}:
         return None
@@ -169,8 +171,8 @@ def evidence_study_profile(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     total_studies = float(bottoms.sum()) if len(bottoms) else 0
     for index, total in enumerate(bottoms):
         share = 100 * total / total_studies if total_studies else 0
-        year_ax.text(x[index], total + max(bottoms) * 0.03, f"{int(total)} ({share:.1f}%)", ha="center", va="bottom", fontsize=6.5)
-    year_ax.set_ylim(0, max(bottoms) * 1.18 if len(bottoms) else 1)
+        year_ax.text(x[index], total + max(bottoms) * 0.025, f"{int(total)}", ha="center", va="bottom", fontsize=7)
+    year_ax.set_ylim(0, max(bottoms) * 1.32 if len(bottoms) else 1)
     year_ax.set_xticks(x)
     year_ax.set_xticklabels(counts.index.astype(int).astype(str))
     year_panel = _panel_cfg(fig_cfg, "evidence_study_profile", "A")
@@ -458,11 +460,9 @@ def _rq3_panel(fig, subspec, gains, summary, task, color, xlabel: str):
     if frame.empty:
         return
     count = len(frame)
-    grid = subspec.subgridspec(2, 2, height_ratios=[count, 1.6], width_ratios=[1.5, 2.2], hspace=0.0, wspace=0.04)
-    left = fig.add_subplot(grid[0, 0])
-    middle = fig.add_subplot(grid[0, 1])
-    left_summary = fig.add_subplot(grid[1, 0])
-    middle_summary = fig.add_subplot(grid[1, 1])
+    grid = subspec.subgridspec(2, 1, height_ratios=[count, 1.6], hspace=0.0)
+    middle = fig.add_subplot(grid[0])
+    middle_summary = fig.add_subplot(grid[1])
     y = np.arange(count)
     low = min(-5, float(frame["study_gain"].min()) - 2)
     high = max(10, float(frame["study_gain"].max()) + 2)
@@ -475,19 +475,10 @@ def _rq3_panel(fig, subspec, gains, summary, task, color, xlabel: str):
     middle.tick_params(axis="x", labelbottom=False, length=0)
     middle.grid(True, axis="x", color="#E3E3E3", linewidth=0.5)
     middle.set_title(task, loc="center", fontweight="bold", fontsize=9, pad=8)
-    left.set_xlim(0, 1)
-    left.set_ylim(-0.5, count - 0.5)
-    left.invert_yaxis()
-    left.axis("off")
-    for position, study_id in zip(y, frame["Study ID"]):
-        left.text(0.02, position, study_id, fontsize=4.4, va="center")
-    for axis in (left_summary, middle_summary):
-        axis.set_facecolor("#E7E7E7")
-        axis.set_yticks([])
-        for spine in axis.spines.values():
-            spine.set_visible(False)
-    left_summary.set_xticks([])
-    left_summary.text(0.02, 0.5, "Median", va="center", fontweight="bold", fontsize=6, transform=left_summary.transAxes)
+    middle_summary.set_facecolor("#E7E7E7")
+    middle_summary.set_yticks([])
+    for spine in middle_summary.spines.values():
+        spine.set_visible(False)
     middle_summary.set_xlim(low, high)
     middle_summary.set_ylim(0, 1)
     middle_summary.axvline(0, linestyle="--", color="black", linewidth=0.8)
@@ -496,7 +487,8 @@ def _rq3_panel(fig, subspec, gains, summary, task, color, xlabel: str):
     ci_high = float(summary["Bootstrap CI high"])
     _forest(middle_summary, median, ci_low, ci_high, 0.5, color, marker="D", ms=5)
     middle_summary.set_xlabel(xlabel)
-    middle_summary.text(0.99, 0.5, f"{median:.2f} [{ci_low:.2f}, {ci_high:.2f}]", va="center", ha="right", fontsize=6, fontweight="bold", transform=middle_summary.transAxes)
+    middle_summary.text(0.02, 0.5, "Median", va="center", ha="left", fontsize=6, fontweight="bold", transform=middle_summary.transAxes)
+    middle_summary.text(0.98, 0.5, f"{median:.2f} [{ci_low:.2f}, {ci_high:.2f}]", va="center", ha="right", fontsize=6, fontweight="bold", transform=middle_summary.transAxes)
 
 
 def rq3_gains(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
@@ -514,6 +506,17 @@ def rq3_gains(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     return save_figure(fig, fig_cfg, "rq3_gains", fig_dir)
 
 
+
+def _fit_note(ax, fits, task: str, moderator: str) -> None:
+    row = fits.loc[fits["Task"].eq(task) & fits["Moderator"].eq(moderator)]
+    if row.empty:
+        return
+    pearson = float(row.iloc[0]["Pearson r"])
+    p_value = float(row.iloc[0]["Permutation p"])
+    p_text = "p < 0.001" if p_value < 0.001 else f"p = {p_value:.3f}"
+    ax.text(0.97, 0.06, f"r = {pearson:.2f}\n{p_text}", transform=ax.transAxes, ha="right", va="bottom", fontsize=6.5, color="#333333", bbox={"boxstyle": "round,pad=0.15", "facecolor": "white", "edgecolor": "none", "alpha": 0.85})
+
+
 def rq4_moderators(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     key = "rq4_moderators"
     fig_cfg = _bound(fig_cfg, key)
@@ -525,6 +528,7 @@ def rq4_moderators(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     frame = gains.merge(master, on="Study ID", how="left")
     frame["Dataset Size (numeric)"] = pd.to_numeric(frame["Dataset Size (numeric)"], errors="coerce")
     environment = _read(stat_dir, _table(fig_cfg, key, "environment"))
+    fits = _read(stat_dir, _table(fig_cfg, key, "regression"))
     tasks = _tasks(analysis_cfg)
     minimum = int(analysis_cfg["analysis"]["minimum_regression_studies"])
     fig = plt.figure(figsize=figure_size(fig_cfg, "rq4_moderators"))
@@ -546,6 +550,7 @@ def rq4_moderators(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
         if column == 0:
             baseline_ax.set_ylabel(panel_a.get("ylabel", "Signed gain (pp)"))
         _style(baseline_ax, "both")
+        _fit_note(baseline_ax, fits, task, "study_baseline")
         size = frame.loc[frame["Task"].eq(task) & frame["Dataset Size (numeric)"].gt(0)].dropna(subset=["study_gain"])
         size_ax = fig.add_subplot(grid[1, column])
         size_ax.scatter(size["Dataset Size (numeric)"], size["study_gain"], color=color, s=12, alpha=0.75, edgecolors="none")
@@ -562,6 +567,7 @@ def rq4_moderators(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
         if column == 0:
             size_ax.set_ylabel(panel_b.get("ylabel", "Signed gain (pp)"))
         _style(size_ax, "both")
+        _fit_note(size_ax, fits, task, "log_dataset_size")
     env_ax = fig.add_subplot(grid[2, :])
     labels = []
     for task in tasks:
@@ -648,10 +654,10 @@ def rq5_credibility(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
             y = positions[scenarios.index(row["Scenario"])] + offsets[task]
             studies = row["Studies"]
             if pd.notna(row["Median gain (pp)"]) and pd.notna(row["Bootstrap CI low"]) and pd.notna(studies) and float(studies) > 0:
-                _forest(forest_ax, float(row["Median gain (pp)"]), float(row["Bootstrap CI low"]), float(row["Bootstrap CI high"]), y, color)
+                _forest(forest_ax, float(row["Median gain (pp)"]), float(row["Bootstrap CI low"]), float(row["Bootstrap CI high"]), y, color, alpha=0.45 if float(studies) <= 6 else 1.0)
     forest_ax.axvline(0, linestyle="--", color="#7A7A7A", lw=0.8)
     forest_ax.set_yticks(positions)
-    forest_ax.set_yticklabels([scenario_labels.get(scenario, scenario) for scenario in scenarios])
+    forest_ax.set_yticklabels([scenario_labels.get(scenario, scenario) + (" †" if scenario in {"leakage_prevented_only", "related_samples_separated_only", "all_credibility_criteria_met"} else "") for scenario in scenarios])
     forest_ax.set_xlabel(panel_b.get("xlabel", "Median gain (pp)"))
     _corner(forest_ax, panel_b.get("letter", "B"))
     _style(forest_ax, "x")
@@ -670,70 +676,12 @@ def rq5_credibility(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
         for _, row in subset.iterrows():
             if row["Scenario"] not in scenarios or pd.isna(row["Studies"]):
                 continue
-            count_ax.text(index + 0.5, positions[scenarios.index(row["Scenario"])], str(int(row["Studies"])), ha="center", va="center", fontsize=7, color=color)
-    fig.subplots_adjust(left=0.24, right=0.96, top=0.94, bottom=0.08, hspace=0.42)
+            studies_n = int(row["Studies"])
+            count_ax.text(index + 0.5, positions[scenarios.index(row["Scenario"])], f"{studies_n}*" if 0 < studies_n <= 6 else str(studies_n), ha="center", va="center", fontsize=7, color=color)
+    forest_ax.text(0.0, -0.16, "† Six or fewer studies. Descriptive only; the wide intervals are not estimates of better performance.", transform=forest_ax.transAxes, ha="left", va="top", fontsize=6.2, clip_on=False)
+    fig.subplots_adjust(left=0.28, right=0.96, top=0.94, bottom=0.12, hspace=0.42)
     _frame_panels(fig, [[quality_ax, colorbar.ax], [forest_ax, count_ax]], fig_cfg, key)
     return save_figure(fig, fig_cfg, "rq5_credibility", fig_dir)
-
-
-def rq6_synthetic(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
-    key = "rq6_synthetic"
-    fig_cfg = _bound(fig_cfg, key)
-    spec = _spec(fig_cfg, key)
-    panel = _panel_cfg(fig_cfg, key, "A")
-    contrast = _read(stat_dir, _table(fig_cfg, key, "contrast")).iloc[0]
-    summary = _read(stat_dir, _table(fig_cfg, key, "summary"))
-    subtypes = _read(stat_dir, _table(fig_cfg, key, "subtypes"))
-    tasks = _tasks(analysis_cfg)
-    navy = _shared(fig_cfg, key, "theme")["neutral_primary"]
-    family = panel.get("family", "Synthetic Image Methods")
-    rows = [(panel.get("contrast_label", family), "contrast", None)]
-    for subtype in spec.get("subtype_order", ["Data Augmentation", "Synthetic Data Generation"]):
-        matches = subtypes.loc[subtypes["Synthetic Type"].eq(subtype)]
-        ordered = matches.set_index("Task").reindex([task for task in tasks if task in set(matches["Task"])]).dropna(subset=["Studies"]).reset_index()
-        several = len(ordered) > 1
-        for _, record in ordered.iterrows():
-            label = f"{subtype}, {record['Task']}" if several else subtype
-            rows.append((label, "subtype" if not spec.get("subtype_interval", False) else "task", record))
-    for task in tasks:
-        record = summary.loc[summary["Task"].eq(task) & summary["Method Family"].eq(family)]
-        if record.empty:
-            continue
-        rows.append((f"Synthetic, {task}", "task", record.iloc[0]))
-    fig = plt.figure(figsize=figure_size(fig_cfg, "rq6_synthetic"))
-    ax = fig.add_subplot(111)
-    positions = np.arange(len(rows))[::-1]
-    for position, (label, kind, record) in zip(positions, rows):
-        if kind == "contrast":
-            estimate = float(contrast["Adjusted difference (pp)"])
-            low = float(contrast["Bootstrap CI low"])
-            high = float(contrast["Bootstrap CI high"])
-            _forest(ax, estimate, low, high, position, navy, marker="D", ms=6)
-            _side_note(ax, position, f"{int(contrast['Independent studies'])}  [{low:.1f}, {high:.1f}]", navy)
-        elif kind == "subtype":
-            ax.scatter(float(record["Median gain (pp)"]), position, marker="D", s=32, color=navy, zorder=3)
-            _side_note(ax, position, str(int(record["Studies"])), navy)
-        else:
-            color = _task_color(fig_cfg, record["Task"])
-            estimate = float(record["Median gain (pp)"])
-            low = float(record["CI low"])
-            high = float(record["CI high"])
-            _forest(ax, estimate, low, high, position, color, marker="D", ms=5.5)
-            _side_note(ax, position, f"{int(record['Studies'])}  [{low:.1f}, {high:.1f}]", color)
-    ax.axvline(0, linestyle="--", color="black", lw=0.8)
-    ax.set_yticks(positions)
-    ax.set_yticklabels([label for label, _, _ in rows])
-    ax.set_xlabel(panel.get("xlabel", "Adjusted difference or median gain (pp)"))
-    _style(ax, "x")
-    handles = [
-        plt.Line2D([0], [0], marker="D", color=navy, lw=0, label="Overall / subtype", markersize=5),
-        *[plt.Line2D([0], [0], marker="D", color=_task_color(fig_cfg, task), lw=1.1, label=task, markersize=4.5) for task in tasks],
-        plt.Line2D([0], [0], color="black", lw=0.8, linestyle="--", label=panel.get("zero_label", "No difference")),
-    ]
-    ax.legend(handles=handles, frameon=False, loc="center left")
-    fig.subplots_adjust(left=0.28, right=0.78, top=0.94, bottom=0.12)
-    _frame_panels(fig, [[ax]], fig_cfg, key)
-    return save_figure(fig, fig_cfg, "rq6_synthetic", fig_dir)
 
 
 def create_all_figures(stat_dir: Path, ready_dir: Path, fig_dir: Path, fig_cfg: dict, analysis_cfg: dict):
@@ -747,7 +695,6 @@ def create_all_figures(stat_dir: Path, ready_dir: Path, fig_dir: Path, fig_cfg: 
         ("rq3_gains", rq3_gains),
         ("rq4_moderators", rq4_moderators),
         ("rq5_credibility", rq5_credibility),
-        ("rq6_synthetic", rq6_synthetic),
     ]
     for name, function in steps:
         result = function(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg)

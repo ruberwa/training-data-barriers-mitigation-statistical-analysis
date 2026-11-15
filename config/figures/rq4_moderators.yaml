@@ -7,6 +7,7 @@ tables:
   gains: rq3_study_gains
   master: study_master
   environment: rq4_environment
+  regression: rq4_baseline_and_size
 panels:
   A:
     xlabel: Baseline (%)

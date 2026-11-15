@@ -6,14 +6,13 @@ from scipy import stats
 
 from utils.statistics import (
     bootstrap_slope,
-    bootstrap_stat,
     cramers_v,
-    percentile_interval,
     permutation_profile_association,
     permutation_slope_p,
     permutation_task_multilabel,
     study_level_effects,
     synthesis_summary,
+    tidy_frame,
 )
 
 
@@ -265,87 +264,12 @@ def rq5_credibility(frames, cfg):
     }
 
 
-def _ols_synthetic_coefficient(frame):
-    data = frame.dropna(subset=["study_gain", "study_baseline", "Synthetic Family", "Task"]).copy()
-    if data.empty or data["Synthetic Family"].nunique() < 2:
-        return np.nan
-    synthetic = (data["Synthetic Family"] == "Synthetic Image Methods").astype(float).to_numpy()
-    baseline = data["study_baseline"].astype(float).to_numpy()
-    task_dummies = pd.get_dummies(data["Task"], drop_first=True, dtype=float)
-    columns = [np.ones(len(data)), synthetic, baseline]
-    for column in task_dummies.columns:
-        columns.append(task_dummies[column].to_numpy())
-    matrix = np.column_stack(columns)
-    outcome = data["study_gain"].astype(float).to_numpy()
-    if np.linalg.matrix_rank(matrix) < matrix.shape[1]:
-        return np.nan
-    return float(np.linalg.lstsq(matrix, outcome, rcond=None)[0][1])
-
-
-def rq6_synthetic(frames, cfg):
-    study = study_level_effects(frames["performance_results"])
-    profile = frames["mitigation_profile"].dropna(subset=["Mitigation Strategy"]).copy()
-    counts = profile.groupby("Study ID")["Mitigation Strategy"].nunique()
-    single_ids = counts[counts.eq(1)].index
-    single = profile[profile["Study ID"].isin(single_ids)].drop_duplicates("Study ID")
-    excluded_ids = study.loc[~study["Study ID"].isin(single_ids), "Study ID"]
-    excluded = pd.DataFrame({
-        "Study ID": excluded_ids.to_numpy(),
-        "Reason": np.where(excluded_ids.map(counts).fillna(0).gt(1), "Several mitigation strategies", "No mitigation strategy"),
-    })
-    joined = study.merge(single[["Study ID", "Mitigation Strategy", "Synthetic Image Method", "Synthetic Type"]], on="Study ID", how="inner")
-    joined["Synthetic Family"] = np.where(joined["Synthetic Image Method"].eq("Yes"), "Synthetic Image Methods", "Other Mitigation Methods")
-    seed, reps, _, level = _bootstrap(cfg)
-    raw_rows = []
-    for index, ((task, family), group) in enumerate(joined.groupby(["Task", "Synthetic Family"])):
-        values = group["study_gain"].dropna().to_numpy(float)
-        low, high, _ = bootstrap_stat(values, repetitions=reps, seed=seed + index, level=level)
-        raw_rows.append({"Task": task, "Method Family": family, "Studies": len(values), "Median gain (pp)": float(np.median(values)) if len(values) else np.nan, "CI low": low, "CI high": high})
-    coefficient = _ols_synthetic_coefficient(joined)
-    rng = np.random.default_rng(seed + 600)
-    studies = joined["Study ID"].unique()
-    draws = []
-    if len(studies) >= 5 and np.isfinite(coefficient):
-        grouped = {study_id: joined[joined["Study ID"].eq(study_id)] for study_id in studies}
-        for _ in range(reps):
-            sampled = rng.choice(studies, size=len(studies), replace=True)
-            estimate = _ols_synthetic_coefficient(pd.concat([grouped[study_id] for study_id in sampled], ignore_index=True))
-            if np.isfinite(estimate):
-                draws.append(estimate)
-    if draws:
-        ci_low, ci_high = percentile_interval(draws, level)
-        p_boot = 2 * min(np.mean(np.asarray(draws) <= 0), np.mean(np.asarray(draws) >= 0))
-    else:
-        ci_low = ci_high = p_boot = np.nan
-    subtype_rows = []
-    subtype = joined[joined["Synthetic Image Method"].eq("Yes")]
-    for (task, synthetic_type), group in subtype.groupby(["Task", "Synthetic Type"]):
-        values = group["study_gain"].dropna().to_numpy(float)
-        subtype_rows.append({"Task": task, "Synthetic Type": synthetic_type, "Studies": len(values), "Median gain (pp)": float(np.median(values)) if len(values) else np.nan})
-    return {
-        "rq6_included_papers": joined,
-        "rq6_excluded_papers": excluded,
-        "rq6_method_summary": pd.DataFrame(raw_rows),
-        "rq6_adjusted_contrast": pd.DataFrame([{
-            "Comparison": "Synthetic Image Methods vs Other Mitigation Methods",
-            "Adjusted difference (pp)": coefficient,
-            "Bootstrap CI low": ci_low,
-            "Bootstrap CI high": ci_high,
-            "Bootstrap two-sided p": p_boot,
-            "Independent studies": len(studies),
-            "Adjustment": "Baseline performance + task",
-            "Entry rule": "One mitigation strategy",
-        }]),
-        "rq6_synthetic_subtypes": pd.DataFrame(subtype_rows),
-    }
-
-
 def run_all_statistics(frames, cfg):
     tables = {}
-    for function in (descriptive_tables, rq1_rq2_associations, rq3_performance, rq4_moderators, rq5_credibility, rq6_synthetic):
+    for function in (descriptive_tables, rq1_rq2_associations, rq3_performance, rq4_moderators, rq5_credibility):
         bundle = function(frames, cfg)
         overlap = set(tables).intersection(bundle)
         if overlap:
             raise RuntimeError(f"Duplicate statistical output names: {sorted(overlap)}")
         tables.update(bundle)
-    return tables
+    return {name: tidy_frame(frame) for name, frame in tables.items()}
