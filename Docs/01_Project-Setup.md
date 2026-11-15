@@ -25,7 +25,7 @@
   - `figures/`: one file per figure for size, tables, panels, and labels
   - `research-question-map.yaml`: which statistics tables and figures answer each research question
 - `data`: the analysis-ready dataset
-  - `Ready Analysis dataset.xlsx`: source record of the included studies
+  - `ARD-Analysis Ready Dataset.xlsx`: source record of the 199 included studies
 - `data/maps`: country boundaries for the geographic view
   - `naturalearth_lowres.shp`: country shapes
   - `naturalearth_lowres.shx`: shape index

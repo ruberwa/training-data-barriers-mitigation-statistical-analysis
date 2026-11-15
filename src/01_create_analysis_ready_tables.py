@@ -97,7 +97,13 @@ def main() -> None:
     validation = analysis_ready_validation(raw, ready)
     validation["source_file"] = str(data_path)
     validation["source_sha256"] = sha256(data_path)
-    validation["expected_studies_from_config"] = cfg["project"].get("expected_studies")
+    expected_studies = cfg["project"].get("expected_studies")
+    validation["expected_studies_from_config"] = expected_studies
+    if expected_studies is not None and validation["checks"]["unique_studies"] != int(expected_studies):
+        validation["failures"].append(
+            f"Study count {validation['checks']['unique_studies']} does not match the configured count {expected_studies}"
+        )
+        validation["status"] = "FAIL"
     validation_path = VALIDATION_DIR / "analysis_ready_tables.json"
     save_json(validation, validation_path)
 

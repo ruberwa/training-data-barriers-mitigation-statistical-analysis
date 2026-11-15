@@ -1,7 +1,7 @@
 **Title:** Build the analysis-ready tables
 
 ## What this step does
-- Reads `data/Ready Analysis dataset.xlsx`
+- Reads `data/ARD-Analysis Ready Dataset.xlsx`
 - Turns the numbered source sheets into the analysis-ready tables
 - Leaves the source workbook unchanged
 
@@ -13,7 +13,7 @@
 - **Barrier Profile:** each coded barrier, with the study task
 - **Mitigation Profile:** each coded mitigation, with the study task
 - **Co-occurrence:** same instance ID within a paper
-- **Comparison Register:** one row per baseline context
+- **Comparison Register:** one row per mitigation result, paired with the baseline that result names, or with the study's only baseline
 - **Performance Results:** eligible comparisons, with the signed gain
 - **Performance Linkage Audit:** every mitigation result
 - **Evidence Quality:** risk-of-bias and credibility judgments for each study

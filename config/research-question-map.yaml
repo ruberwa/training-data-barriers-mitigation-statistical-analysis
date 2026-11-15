@@ -12,7 +12,7 @@ evidence:
     - evidence_geography
 
 rq1:
-  question: What training-data barriers are reported, and how do their profiles differ across Detection, Segmentation and Classification?
+  question: What training-data barriers are reported, and how do their profiles differ across Detection, Classification and Segmentation?
   statistical_tables:
     - rq1_barrier_category
     - rq1_barrier_type
@@ -62,14 +62,3 @@ rq5:
     - rq5_leave_one_paper_out
   figures:
     - rq5_credibility
-
-rq6:
-  question: Can Synthetic Image Methods statistically compete with other mitigation methods in reported performance gain after accounting for baseline performance?
-  statistical_tables:
-    - rq6_included_papers
-    - rq6_excluded_papers
-    - rq6_method_summary
-    - rq6_adjusted_contrast
-    - rq6_synthetic_subtypes
-  figures:
-    - rq6_synthetic

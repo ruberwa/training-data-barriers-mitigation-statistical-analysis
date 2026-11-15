@@ -18,10 +18,9 @@
 - **Evidence profile:** year, task, environment, country, and dataset size. Dataset size uses `Dataset Size (numeric)` only
 - **RQ1:** barrier prevalence by task, and a study-preserving permutation test of the barrier profiles
 - **RQ2:** mitigation prevalence by task. The barrier–mitigation table counts strategies that occur in the same paper. Same-instance rows stay labeled as co-occurrence. The permutation test uses each paper’s barrier profile and mitigation profile
-- **RQ3:** one signed gain per paper. For each task, the number of papers, the median gain, and the bootstrap interval. Negative gains stay in
+- **RQ3:** one signed gain per paper. A paper with several linked comparisons contributes the median of those gains, and the median of the baselines those comparisons use. For each task, the number of papers, the median gain, and the bootstrap interval. Negative gains stay in
 - **RQ4:** that gain against baseline percent, log dataset size when the number is clear, environment, and the paper’s barrier and mitigation profile. A subgroup needs at least 5 papers. A regression needs at least 10
 - **RQ5:** the quality profile, the sensitivity scenarios that still apply, and leave-one-paper-out on the task medians. There is no within-paper mean scenario
-- **RQ6:** Synthetic Image Methods against other methods after baseline and task. A paper enters only when its mitigation profile has one strategy. Data Augmentation and Synthetic Data Generation remain the two synthetic subtypes
 
 ## Where they are written
 - `results/statistics/statistics.xlsx`

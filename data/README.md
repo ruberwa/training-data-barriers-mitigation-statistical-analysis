@@ -6,15 +6,15 @@ This dataset accompanies the systematic review “Training-Data Barriers and Mit
 
 The dataset contains structured information extracted from the studies included in the systematic review. It was developed to investigate training-data barriers in agricultural weed computer vision, the mitigation strategies used to address these barriers, reported model performance before and after mitigation, and the methodological credibility of the supporting evidence.
 
-The final systematic-review evidence base contains 139 studies covering three computer-vision tasks: Detection, Classification, and Segmentation.
+The final systematic-review evidence base contains 199 studies covering three computer-vision tasks: Detection, Classification, and Segmentation.
 
 ## Dataset file
 
-File: `Ready Analysis dataset.xlsx`
+File: `ARD-Analysis Ready Dataset.xlsx`
 
 The Excel workbook contains the structured study-level and study-instance-level data extracted from the included publications. A unique Study ID identifies each included publication. Study Instance IDs are used where necessary to distinguish multiple datasets, barriers, mitigation strategies, or performance results reported within the same study.
 
-The workbook contains the following eight worksheets.
+The workbook contains the following ten worksheets. The analysis reads the eight sheets listed below. `3-Crop` repeats the study-level crop as one row per crop. `10-Source & Justification` records where each performance number was taken from the paper.
 
 - **1-Study Identification.** Bibliographic and identification information for the included studies.
 - **2-Application Context.** Computer-vision task and agricultural application or experimental context.
@@ -137,7 +137,7 @@ In particular:
 
 ## Data provenance
 
-The data were extracted from primary experimental studies identified through the systematic-review process. Following screening, 139 studies were included in the final evidence base.
+The data were extracted from primary experimental studies identified through the systematic-review process. Following screening, 199 studies were included in the final evidence base.
 
 The primary researcher extracted information from the original publications, and two independent reviewers verified a random 30% subset of extracted records. The extraction architecture and coding procedures were designed to preserve links between study identification, application context, dataset characteristics, training-data barriers, mitigation strategies, performance results, and evidence-quality assessments.
 
@@ -152,7 +152,7 @@ Repository: ruberwa/training-data-barriers-statistical-analysis
 
 Dataset DOI/URL: https://github.com/ruberwa/training-data-barriers-statistical-analysis
 
-Dataset file: `Ready Analysis dataset.xlsx`
+Dataset file: `ARD-Analysis Ready Dataset.xlsx`
 
 ## Contact
 

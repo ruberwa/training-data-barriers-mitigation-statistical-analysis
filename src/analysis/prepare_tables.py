@@ -25,9 +25,12 @@ REGISTER_COLUMNS = [
     "Reason",
     "Signed Gain (pp)",
 ]
-MATCHED_REASON = "One mitigation result shares the study and metric family"
-SEVERAL_RESULTS_REASON = "Several mitigation results share this study and metric family"
-NO_RESULT_REASON = "No mitigation result for this study and metric family"
+NAMED_BASELINE_REASON = "The result names this baseline instance"
+ONLY_BASELINE_REASON = "The study has one baseline"
+NO_BASELINE_REASON = "No baseline for this study"
+UNMATCHED_BASELINE_REASON = "The named baseline instance is not in the baseline sheet"
+FAMILY_MISMATCH_REASON = "The baseline and the result use different metric families"
+MISSING_SCORE_REASON = "Baseline or mitigation score is missing"
 _COUNT = re.compile(r"\d{1,3}(?:,\d{3})+|\d+")
 
 
@@ -68,40 +71,71 @@ def _result_fields(row):
     }
 
 
-def _automatic_choice(results, study_id, family):
-    same_family = results[results["Study ID"].eq(study_id) & results["Metric Family"].eq(family)]
-    if len(same_family) == 0:
-        return STATUS_PENDING, NO_RESULT_REASON, None
-    if len(same_family) > 1:
-        return STATUS_PENDING, SEVERAL_RESULTS_REASON, None
-    return STATUS_ELIGIBLE, MATCHED_REASON, same_family.iloc[0]
+def _named_baseline(value):
+    if isinstance(value, str):
+        return value.strip()
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
+
+
+def _baseline_for_result(result, baselines, by_instance, baseline_counts):
+    named = _named_baseline(result.get("Baseline Instance ID", pd.NA))
+    if named:
+        if named not in by_instance.index:
+            return None, UNMATCHED_BASELINE_REASON
+        chosen = by_instance.loc[named]
+        if isinstance(chosen, pd.DataFrame):
+            chosen = chosen.iloc[0]
+        return chosen, NAMED_BASELINE_REASON
+    if int(baseline_counts.get(result["Study ID"], 0)) == 1:
+        return baselines.loc[baselines["Study ID"].eq(result["Study ID"])].iloc[0], ONLY_BASELINE_REASON
+    return None, NO_BASELINE_REASON
 
 
 def _comparison_register(baselines, results, master):
     tasks = master.set_index("Study ID")["Task"]
+    by_instance = baselines.set_index("Baseline Study Instance ID", drop=False)
+    baseline_counts = baselines.groupby("Study ID").size()
     rows = []
-    for baseline in baselines.to_dict("records"):
-        study_id = baseline["Study ID"]
-        instance_id = baseline["Baseline Study Instance ID"]
-        family = baseline["Metric Family"]
-        status, reason, chosen = _automatic_choice(results, study_id, family)
-        fields = _result_fields(chosen)
+    for result in results.to_dict("records"):
+        study_id = result["Study ID"]
+        family = result["Metric Family"]
+        chosen, reason = _baseline_for_result(result, baselines, by_instance, baseline_counts)
+        status = STATUS_PENDING
         gain = pd.NA
-        if status == STATUS_ELIGIBLE and chosen is not None:
-            gain = float(chosen["Mitigation (%)"]) - float(baseline["Baseline (%)"])
+        baseline_fields = {
+            "Baseline Study Instance ID": pd.NA,
+            "Baseline Source Row": pd.NA,
+            "Baseline Method": pd.NA,
+            "Baseline (%)": pd.NA,
+        }
+        if chosen is not None:
+            baseline_fields = {
+                "Baseline Study Instance ID": chosen["Baseline Study Instance ID"],
+                "Baseline Source Row": int(chosen["Baseline Source Row"]),
+                "Baseline Method": chosen["Baseline Method"],
+                "Baseline (%)": chosen["Baseline (%)"],
+            }
+            same_family = str(chosen["Metric Family"]).strip() == str(family).strip()
+            scores_present = pd.notna(chosen["Baseline (%)"]) and pd.notna(result["Mitigation (%)"])
+            if same_family and scores_present:
+                status = STATUS_ELIGIBLE
+                gain = float(result["Mitigation (%)"]) - float(chosen["Baseline (%)"])
+            elif not same_family:
+                reason = FAMILY_MISMATCH_REASON
+            else:
+                reason = MISSING_SCORE_REASON
         rows.append({
             "Study ID": study_id,
             "Task": tasks.get(study_id, pd.NA),
-            "Baseline Study Instance ID": instance_id,
-            "Baseline Source Row": int(baseline["Baseline Source Row"]),
-            "Baseline Method": baseline["Baseline Method"],
             "Metric": family,
             "Metric Family": family,
-            "Baseline (%)": baseline["Baseline (%)"],
             "Status": status,
             "Reason": reason,
             "Signed Gain (pp)": gain,
-            **fields,
+            **baseline_fields,
+            **_result_fields(result),
         })
     register = pd.DataFrame(rows)
     register.insert(0, "Comparison ID", [f"C{i:04d}" for i in range(1, len(register) + 1)])
@@ -151,7 +185,7 @@ def build_analysis_ready(raw: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame
     mitigation_profile = mitigations.merge(task, on="Study ID", how="left", validate="many_to_one")
 
     key = ["Study ID", "Study Instance ID"]
-    cooccurrence = barriers.merge(mitigations, on=key, how="outer", validate="one_to_one", indicator=True)
+    cooccurrence = barriers.merge(mitigations, on=key, how="outer", validate="one_to_many", indicator=True)
     cooccurrence["Co-occurrence"] = cooccurrence["_merge"].map({
         "both": "Same-instance co-occurrence",
         "left_only": "Barrier only",
@@ -168,9 +202,13 @@ def build_analysis_ready(raw: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame
     baselines = baselines.reset_index(drop=True)
     baselines["Baseline Source Row"] = np.arange(1, len(baselines) + 1)
 
-    results = _strip_columns(raw["mitigation_results"].copy().rename(columns={
+    results = raw["mitigation_results"].copy().rename(columns={
         "Mitigation Modules": "Proposed Method",
-    }), ["Study ID", "Study Instance ID", "Metric Family"])
+    })
+    result_text = ["Study ID", "Study Instance ID", "Metric Family"]
+    if "Baseline Instance ID" in results.columns:
+        result_text.append("Baseline Instance ID")
+    results = _strip_columns(results, result_text)
     if "Gain (pp)" in results.columns:
         results = results.rename(columns={"Gain (pp)": "Reported Gain (pp)"})
     elif "Gain" in results.columns:

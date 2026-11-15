@@ -52,8 +52,8 @@ theme:
 palette:
   tasks:
     Detection: "#2B7F68"
-    Segmentation: "#FC8028"
     Classification: "#CE482D"
+    Segmentation: "#FC8028"
   barriers:
     DATA: "#2B7F68"
     ENVIRONMENTAL: "#FC8028"

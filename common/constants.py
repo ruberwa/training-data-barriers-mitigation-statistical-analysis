@@ -30,9 +30,9 @@ RAW_SHEETS = {
     "identification": ("1-Study Identification", 1),
     "context": ("2-Application Context", 1),
     "datasets": ("4-Dataset Characteristics", 1),
-    "barriers": ("5-Barrier Coding", 1),
-    "mitigations": ("6-Mitigation Strategy Coding", 1),
-    "baselines": ("7-Baseline Performance Results", 1),
-    "mitigation_results": ("8-Mitigation Performance Result", 1),
+    "barriers": ("5-Barrier Coding", 2),
+    "mitigations": ("6-Mitigation Strategy Coding", 2),
+    "baselines": ("7-Baseline Performance Results", 2),
+    "mitigation_results": ("8-Mitigation Performance Result", 2),
     "quality": ("9-Quality & Risk of Bias", 1),
 }
