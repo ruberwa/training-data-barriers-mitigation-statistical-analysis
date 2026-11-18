@@ -70,6 +70,12 @@ def _style(ax, grid_axis: str = "y") -> None:
     ax.set_axisbelow(True)
 
 
+def _gray_frame(ax, color: str = "#C8C8C8") -> None:
+    for spine in ax.spines.values():
+        spine.set_color(color)
+    ax.tick_params(axis="both", color=color)
+
+
 def _forest(ax, x, low, high, y, color, marker="o", ms=4.5, alpha=1.0) -> None:
     ax.errorbar(x, y, xerr=[[max(x - low, 0)], [max(high - x, 0)]], fmt=marker, color=color, ecolor=color, ms=ms, lw=1.1, capsize=2, alpha=alpha)
 
@@ -171,16 +177,18 @@ def evidence_study_profile(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     total_studies = float(bottoms.sum()) if len(bottoms) else 0
     for index, total in enumerate(bottoms):
         share = 100 * total / total_studies if total_studies else 0
-        year_ax.text(x[index], total + max(bottoms) * 0.025, f"{int(total)}", ha="center", va="bottom", fontsize=7)
-    year_ax.set_ylim(0, max(bottoms) * 1.32 if len(bottoms) else 1)
+        year_ax.text(x[index], total + max(bottoms) * 0.025, f"{int(total)}", ha="center", va="bottom", fontsize=9, color="#333333")
+    year_ax.set_ylim(0, max(bottoms) * 1.38 if len(bottoms) else 1)
     year_ax.set_xticks(x)
-    year_ax.set_xticklabels(counts.index.astype(int).astype(str))
+    year_ax.set_xticklabels(counts.index.astype(int).astype(str), rotation=35, ha="right", rotation_mode="anchor")
+    year_ax.tick_params(axis="both", labelsize=9)
+    _gray_frame(year_ax)
     year_panel = _panel_cfg(fig_cfg, "evidence_study_profile", "A")
-    year_ax.set_ylabel(year_panel.get("ylabel", "Number of studies"))
-    year_ax.set_xlabel(year_panel.get("xlabel", "Publication year"))
-    _panel(year_ax, year_panel.get("letter", "A"), 0.98)
+    year_ax.set_ylabel(year_panel.get("ylabel", "Number of studies"), fontsize=10)
+    year_ax.set_xlabel(year_panel.get("xlabel", "Publication year"), fontsize=10, labelpad=8)
+    year_ax.text(-0.02, 1.14, year_panel.get("letter", "A"), transform=year_ax.transAxes, fontsize=11, fontweight="bold", va="bottom", ha="right", clip_on=False)
     _style(year_ax)
-    year_ax.legend(frameon=False, loc="upper left")
+    year_ax.legend(frameon=False, loc="upper left", fontsize=8.5)
     valid = master.loc[master["Task"].isin(tasks) & master["Dataset Size (numeric)"].gt(0)]
     data = [valid.loc[valid["Task"].eq(task), "Dataset Size (numeric)"].dropna().to_numpy(float) for task in tasks]
     boxes = size_ax.boxplot([values for values in data if len(values)] or [np.array([np.nan])], tick_labels=[task for task, values in zip(tasks, data) if len(values)], patch_artist=True, widths=0.55, showfliers=False)
@@ -188,12 +196,12 @@ def evidence_study_profile(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     for patch, task in zip(boxes["boxes"], shown):
         patch.set_facecolor(_task_color(fig_cfg, task))
         patch.set_alpha(0.9)
-        patch.set_edgecolor("black")
+        patch.set_edgecolor("#333333")
     for element in ("whiskers", "caps"):
         for line in boxes[element]:
-            line.set_color("black")
+            line.set_color("#333333")
     for line in boxes["medians"]:
-        line.set_color("black")
+        line.set_color("#333333")
         line.set_linewidth(1.2)
     size_ax.set_yscale("log")
     rng = np.random.default_rng(int(analysis_cfg.get("bootstrap", {}).get("seed", 20260903)))
@@ -203,16 +211,19 @@ def evidence_study_profile(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
         task = shown[index - 1]
         task_count = int(master.loc[master["Task"].eq(task), "Study ID"].nunique())
         share = 100 * len(values) / task_count if task_count else 0
-        size_ax.text(index, values.max() * 1.45, f"n = {len(values)} ({share:.1f}%)", ha="center", va="bottom", fontsize=7)
+        size_ax.text(index, values.max() * 1.55, f"n = {len(values)} ({share:.1f}%)", ha="center", va="bottom", fontsize=8.5, color="#333333")
     low, _ = size_ax.get_ylim()
     highest = max(values.max() for values in shown_values)
-    size_ax.set_ylim(low, highest * 3)
+    size_ax.set_ylim(low, highest * 3.4)
+    size_ax.tick_params(axis="both", labelsize=9)
+    _gray_frame(size_ax)
     size_panel = _panel_cfg(fig_cfg, "evidence_study_profile", "B")
-    _panel(size_ax, size_panel.get("letter", "B"), 0.98)
-    size_ax.set_ylabel(size_panel.get("ylabel", "Dataset size"))
-    size_ax.set_xlabel(size_panel.get("xlabel", "Task"))
+    size_ax.text(-0.02, 1.14, size_panel.get("letter", "B"), transform=size_ax.transAxes, fontsize=11, fontweight="bold", va="bottom", ha="right", clip_on=False)
+    size_ax.set_ylabel(size_panel.get("ylabel", "Dataset size"), fontsize=10)
+    size_ax.set_xlabel(size_panel.get("xlabel", "Task"), fontsize=10)
     _style(size_ax)
-    fig.subplots_adjust(left=0.08, right=0.98, top=0.94, bottom=0.14)
+    fig.subplots_adjust(left=0.10, right=0.98, top=0.88, bottom=0.22, wspace=0.38)
+    _frame_panels(fig, [[year_ax], [size_ax]], fig_cfg, "evidence_study_profile")
     return save_figure(fig, fig_cfg, "evidence_study_profile", fig_dir)
 
 
@@ -296,7 +307,7 @@ def _ranked(frame: pd.DataFrame, item: str, fig_cfg: dict, key: str | None = Non
 
 def _count_labels(ax, studies, percents, span: float) -> None:
     for y, count, percent in zip(range(len(studies)), studies, percents):
-        ax.text(count + span * 0.015, y, f"{int(count)} ({percent:.1f}%)", va="center", ha="left", fontsize=6.5, color="#4D4D4D")
+        ax.text(count + span * 0.015, y, f"{int(count)} ({percent:.1f}%)", va="center", ha="left", fontsize=9, color="#333333")
 
 
 def _record_pie(ax, records: pd.DataFrame, category: str, palette: dict, fig_cfg: dict, key: str) -> None:
@@ -305,15 +316,19 @@ def _record_pie(ax, records: pd.DataFrame, category: str, palette: dict, fig_cfg
     ordered = records.set_index(category).reindex(order).dropna(subset=["Records"])
     colors = [palette[code] for code in ordered.index]
     labels = [_category_label(str(code)) for code in ordered.index]
-    pie_ax = ax.inset_axes([0.55, 0.16, 0.42, 0.40])
+    wide = len(ordered) <= 2
+    pie_ax = ax.inset_axes([0.42, -0.04, 0.54, 0.86] if wide else [0.52, 0.02, 0.34, 0.58])
     pie_ax.set_zorder(4)
-    pie_ax.set_facecolor("white")
-    wedges, _, autotexts = pie_ax.pie(ordered["Records"], colors=colors, startangle=90, wedgeprops={"width": donut.get("width", 0.68), "edgecolor": "white", "linewidth": 0.6}, autopct=lambda share: f"{share:.1f}%", pctdistance=donut.get("pctdistance", 0.66), textprops={"fontsize": 6.5})
-    pie_ax.add_artist(plt.Circle((0, 0), donut.get("hole", 0.32), facecolor="white", edgecolor="none", zorder=2))
+    pie_ax.set_facecolor("none")
+    pie_kwargs = {"startangle": 90, "wedgeprops": {"width": 0.62, "edgecolor": "white", "linewidth": 0.8}}
+    wedges, _, autotexts = pie_ax.pie(ordered["Records"], colors=colors, autopct=lambda share: f"{share:.1f}%", pctdistance=0.68, textprops={"fontsize": 10 if wide else 8, "fontweight": "bold"}, **pie_kwargs)
     for wedge, text in zip(wedges, autotexts):
         text.set_color(_ink(wedge.get_facecolor()))
+        text.set_fontweight("bold")
         text.set_zorder(3)
-    pie_ax.legend(wedges, labels, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.04), fontsize=6, ncol=2, handlelength=0.8, columnspacing=0.6)
+        text.set_clip_on(False)
+    pie_ax.add_artist(plt.Circle((0, 0), 0.38, facecolor="white", edgecolor="none", zorder=2))
+    ax.legend(wedges, labels, frameon=False, loc="upper center", bbox_to_anchor=(0.78, -0.16), fontsize=8.5, ncol=2, handlelength=0.9, columnspacing=0.9, borderaxespad=0)
 
 
 def _corner(ax, label: str) -> None:
@@ -359,7 +374,7 @@ def rq1_barriers(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     tasks = _tasks(analysis_cfg)
     counted = profile.dropna(subset=["Study ID", "Normalized Barrier", "Task"]).groupby(["Normalized Barrier", "Task"])["Study ID"].nunique()
     fig = plt.figure(figsize=figure_size(fig_cfg, "rq1_barriers"))
-    grid = fig.add_gridspec(1, 2, width_ratios=[1.25, 1.0], wspace=0.32)
+    grid = fig.add_gridspec(2, 1, height_ratios=[1.05, 1.0], hspace=0.48)
     type_ax = fig.add_subplot(grid[0])
     task_ax = fig.add_subplot(grid[1])
     type_ax.barh(np.arange(len(names)), types["Studies"], color=colors, height=0.72)
@@ -367,8 +382,10 @@ def rq1_barriers(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     _count_labels(type_ax, types["Studies"], types["Study prevalence %"], span)
     type_ax.set_yticks(np.arange(len(names)))
     type_ax.set_yticklabels(names)
-    type_ax.set_xlim(0, span * 1.42)
-    type_ax.set_xlabel(panel_a.get("xlabel", "Number of studies"))
+    type_ax.tick_params(axis="both", labelsize=9.5)
+    _gray_frame(type_ax)
+    type_ax.set_xlim(0, span * 1.55)
+    type_ax.set_xlabel(panel_a.get("xlabel", "Number of studies"), fontsize=10)
     if panel_a.get("donut", True):
         _record_pie(type_ax, _read(stat_dir, _table(fig_cfg, key, "categories")), "Barrier Category", palette, fig_cfg, key)
     _corner(type_ax, panel_a.get("letter", "A"))
@@ -386,16 +403,18 @@ def rq1_barriers(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
         color = colors[row]
         for index, task in enumerate(tasks):
             count = int(counted.get((name, task), 0))
-            task_ax.scatter(index, row, s=210, color=color, zorder=2)
-            task_ax.text(index, row, str(count), ha="center", va="center", fontsize=5.5, color=_ink(color), zorder=3)
+            task_ax.scatter(index, row, s=200, color=color, zorder=2)
+            task_ax.text(index, row, str(count), ha="center", va="center", fontsize=8.5, fontweight="bold", color=_ink(color), zorder=3)
     task_ax.set_xticks(np.arange(len(tasks)))
     task_ax.set_xticklabels(tasks)
     task_ax.set_yticks(y)
     task_ax.set_yticklabels(names)
-    task_ax.set_xlabel(panel_b.get("xlabel", "Task"))
+    task_ax.tick_params(axis="both", labelsize=9.5)
+    _gray_frame(task_ax)
+    task_ax.set_xlabel(panel_b.get("xlabel", "Task"), fontsize=10)
     _corner(task_ax, panel_b.get("letter", "B"))
     task_ax.set_axisbelow(True)
-    fig.subplots_adjust(left=0.14, right=0.98, top=0.90, bottom=0.08, wspace=0.32)
+    fig.subplots_adjust(left=0.24, right=0.97, top=0.96, bottom=0.06, hspace=0.48)
     _frame_panels(fig, [[type_ax], [task_ax]], fig_cfg, key)
     return save_figure(fig, fig_cfg, "rq1_barriers", fig_dir)
 
@@ -420,7 +439,7 @@ def rq2_mitigations(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     pair_counts = joined.groupby(["Normalized Barrier", "Mitigation Strategy"])["Study ID"].nunique()
     matrix = pair_counts.unstack(fill_value=0).reindex(index=list(reversed(barrier_names)), columns=names).fillna(0)
     fig = plt.figure(figsize=figure_size(fig_cfg, "rq2_mitigations"))
-    grid = fig.add_gridspec(1, 2, width_ratios=[1.05, 1.35], wspace=0.28)
+    grid = fig.add_gridspec(2, 1, height_ratios=[0.9, 1.2], hspace=0.52)
     strategy_ax = fig.add_subplot(grid[0])
     heat_ax = fig.add_subplot(grid[1])
     strategy_ax.barh(np.arange(len(names)), strategies["Studies"], color=colors, height=0.72)
@@ -428,8 +447,10 @@ def rq2_mitigations(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     _count_labels(strategy_ax, strategies["Studies"], strategies["Study prevalence %"], span)
     strategy_ax.set_yticks(np.arange(len(names)))
     strategy_ax.set_yticklabels(names)
-    strategy_ax.set_xlim(0, span * 1.48)
-    strategy_ax.set_xlabel(panel_a.get("xlabel", "Number of studies"))
+    strategy_ax.tick_params(axis="both", labelsize=9.5)
+    _gray_frame(strategy_ax)
+    strategy_ax.set_xlim(0, span * 1.7)
+    strategy_ax.set_xlabel(panel_a.get("xlabel", "Number of studies"), fontsize=10)
     if panel_a.get("donut", True):
         _record_pie(strategy_ax, _read(stat_dir, _table(fig_cfg, key, "categories")), "Mitigation Category", palette, fig_cfg, key)
     _corner(strategy_ax, panel_a.get("letter", "A"))
@@ -442,15 +463,18 @@ def rq2_mitigations(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     heat_ax.set_xticklabels(matrix.columns, rotation=35, ha="right")
     heat_ax.set_yticks(np.arange(len(matrix.index)))
     heat_ax.set_yticklabels(matrix.index)
-    heat_ax.set_xlabel(panel_b.get("xlabel", "Mitigation strategy"))
+    heat_ax.tick_params(axis="both", labelsize=8.5)
+    _gray_frame(heat_ax)
+    heat_ax.set_xlabel(panel_b.get("xlabel", "Mitigation strategy"), fontsize=10)
     _corner(heat_ax, panel_b.get("letter", "B"))
     ceiling = values.max() if values.size else 1
     for i in range(values.shape[0]):
         for j in range(values.shape[1]):
-            heat_ax.text(j, i, f"{int(values[i, j])}", ha="center", va="center", fontsize=5.5, color="white" if values[i, j] >= ceiling * 0.55 else "#4D4D4D")
+            heat_ax.text(j, i, f"{int(values[i, j])}", ha="center", va="center", fontsize=9, fontweight="bold", color="white" if values[i, j] >= ceiling * 0.55 else "#333333")
     colorbar = fig.colorbar(image, ax=heat_ax, fraction=0.046, pad=0.02)
-    colorbar.set_label(panel_b.get("colorbar", "Studies"))
-    fig.subplots_adjust(left=0.12, right=0.94, top=0.90, bottom=0.24, wspace=0.28)
+    colorbar.set_label(panel_b.get("colorbar", "Studies"), fontsize=9)
+    colorbar.ax.tick_params(labelsize=8)
+    fig.subplots_adjust(left=0.24, right=0.92, top=0.96, bottom=0.16, hspace=0.52)
     _frame_panels(fig, [[strategy_ax], [heat_ax, colorbar.ax]], fig_cfg, key)
     return save_figure(fig, fig_cfg, "rq2_mitigations", fig_dir)
 
@@ -515,7 +539,7 @@ def _fit_note(ax, fits, task: str, moderator: str) -> None:
     pearson = float(row.iloc[0]["Pearson r"])
     p_value = float(row.iloc[0]["Permutation p"])
     p_text = "p < 0.001" if p_value < 0.001 else f"p = {p_value:.3f}"
-    ax.text(0.97, 0.06, f"r = {pearson:.2f}\n{p_text}", transform=ax.transAxes, ha="right", va="bottom", fontsize=6.5, color="#333333", bbox={"boxstyle": "round,pad=0.15", "facecolor": "white", "edgecolor": "none", "alpha": 0.85})
+    ax.text(0.97, 0.05, f"r = {pearson:.2f}\n{p_text}", transform=ax.transAxes, ha="right", va="bottom", fontsize=10, color="#333333", bbox={"boxstyle": "round,pad=0.18", "facecolor": "white", "edgecolor": "none", "alpha": 0.9})
 
 
 def rq4_moderators(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
@@ -533,40 +557,44 @@ def rq4_moderators(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     tasks = _tasks(analysis_cfg)
     minimum = int(analysis_cfg["analysis"]["minimum_regression_studies"])
     fig = plt.figure(figsize=figure_size(fig_cfg, "rq4_moderators"))
-    grid = fig.add_gridspec(3, len(tasks), height_ratios=[1.1, 1.1, 0.9], hspace=0.55, wspace=0.28)
+    grid = fig.add_gridspec(3, len(tasks), height_ratios=[1.15, 1.15, 1.0], hspace=0.72, wspace=0.46)
     for column, task in enumerate(tasks):
         color = _task_color(fig_cfg, task)
         baseline = frame.loc[frame["Task"].eq(task)].dropna(subset=["study_baseline", "study_gain"])
         baseline_ax = fig.add_subplot(grid[0, column])
-        baseline_ax.scatter(baseline["study_baseline"], baseline["study_gain"], color=color, s=12, alpha=0.75, edgecolors="none")
+        baseline_ax.scatter(baseline["study_baseline"], baseline["study_gain"], color=color, s=22, alpha=0.75, edgecolors="none")
         if len(baseline) >= minimum and baseline["study_baseline"].nunique() >= 2:
             grid_x = np.linspace(baseline["study_baseline"].min(), baseline["study_baseline"].max(), 80)
             line, low, high = _regression(baseline["study_baseline"].to_numpy(float), baseline["study_gain"].to_numpy(float), grid_x)
-            baseline_ax.plot(grid_x, line, color=color, lw=1.4)
+            baseline_ax.plot(grid_x, line, color=color, lw=1.6)
             if low is not None:
                 baseline_ax.fill_between(grid_x, low, high, color=color, alpha=0.15)
-        baseline_ax.axhline(0, linestyle="--", color="#7A7A7A", lw=0.8)
-        baseline_ax.set_title(task, fontweight="bold", fontsize=8)
-        baseline_ax.set_xlabel(panel_a.get("xlabel", "Baseline (%)"))
+        baseline_ax.axhline(0, linestyle="--", color="#B0B0B0", lw=0.8)
+        baseline_ax.set_title(task, fontweight="bold", fontsize=13, pad=10)
+        baseline_ax.tick_params(axis="both", labelsize=11)
+        _gray_frame(baseline_ax)
+        baseline_ax.set_xlabel(panel_a.get("xlabel", "Baseline (%)"), fontsize=12)
         if column == 0:
-            baseline_ax.set_ylabel(panel_a.get("ylabel", "Signed gain (pp)"))
+            baseline_ax.set_ylabel(panel_a.get("ylabel", "Signed gain (pp)"), fontsize=12)
         _style(baseline_ax, "both")
         _fit_note(baseline_ax, fits, task, "study_baseline")
         size = frame.loc[frame["Task"].eq(task) & frame["Dataset Size (numeric)"].gt(0)].dropna(subset=["study_gain"])
         size_ax = fig.add_subplot(grid[1, column])
-        size_ax.scatter(size["Dataset Size (numeric)"], size["study_gain"], color=color, s=12, alpha=0.75, edgecolors="none")
+        size_ax.scatter(size["Dataset Size (numeric)"], size["study_gain"], color=color, s=22, alpha=0.75, edgecolors="none")
         if len(size) >= minimum and size["Dataset Size (numeric)"].nunique() >= 2:
             logged = np.log10(size["Dataset Size (numeric)"].to_numpy(float))
             grid_x = np.linspace(logged.min(), logged.max(), 80)
             line, low, high = _regression(logged, size["study_gain"].to_numpy(float), grid_x)
-            size_ax.plot(10 ** grid_x, line, color=color, lw=1.4)
+            size_ax.plot(10 ** grid_x, line, color=color, lw=1.6)
             if low is not None:
                 size_ax.fill_between(10 ** grid_x, low, high, color=color, alpha=0.15)
-        size_ax.axhline(0, linestyle="--", color="#7A7A7A", lw=0.8)
+        size_ax.axhline(0, linestyle="--", color="#B0B0B0", lw=0.8)
         size_ax.set_xscale("log")
-        size_ax.set_xlabel(panel_b.get("xlabel", "Dataset size"))
+        size_ax.tick_params(axis="both", labelsize=11)
+        _gray_frame(size_ax)
+        size_ax.set_xlabel(panel_b.get("xlabel", "Dataset size"), fontsize=12)
         if column == 0:
-            size_ax.set_ylabel(panel_b.get("ylabel", "Signed gain (pp)"))
+            size_ax.set_ylabel(panel_b.get("ylabel", "Signed gain (pp)"), fontsize=12)
         _style(size_ax, "both")
         _fit_note(size_ax, fits, task, "log_dataset_size")
     env_ax = fig.add_subplot(grid[2, :])
@@ -576,14 +604,29 @@ def rq4_moderators(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
         for _, row in levels.iterrows():
             labels.append((task, row))
     for position, (task, row) in enumerate(labels):
-        _forest(env_ax, float(row["Median gain (pp)"]), float(row["Q1"]), float(row["Q3"]), position, _task_color(fig_cfg, task))
-    env_ax.axvline(0, linestyle="--", color="#7A7A7A", lw=0.8)
+        _forest(env_ax, float(row["Median gain (pp)"]), float(row["Q1"]), float(row["Q3"]), position, _task_color(fig_cfg, task), ms=6.5)
+    env_ax.axvline(0, linestyle="--", color="#B0B0B0", lw=0.8)
     env_ax.set_yticks(np.arange(len(labels)))
     env_ax.set_yticklabels([f"{task}: {row['Environment']}" for task, row in labels])
-    env_ax.set_xlabel(panel_c.get("xlabel", "Median gain (pp)"))
+    env_ax.tick_params(axis="both", labelsize=11)
+    _gray_frame(env_ax)
+    env_ax.set_xlabel(panel_c.get("xlabel", "Median gain (pp)"), fontsize=12)
     _style(env_ax, "x")
-    fig.subplots_adjust(left=0.18, right=0.98, top=0.96, bottom=0.08, hspace=0.55, wspace=0.28)
+    fig.subplots_adjust(left=0.32, right=0.98, top=0.90, bottom=0.07, hspace=0.78, wspace=0.50)
     return save_figure(fig, fig_cfg, "rq4_moderators", fig_dir)
+
+
+def _share_labels(values) -> list[int]:
+    numbers = [float(value) for value in values]
+    labels = [int(np.floor(number + 1e-9)) for number in numbers]
+    leftover = int(round(sum(numbers))) - sum(labels)
+    fractions = sorted(range(len(numbers)), key=lambda index: (numbers[index] - labels[index], numbers[index]), reverse=True)
+    for index in fractions:
+        if leftover <= 0 or numbers[index] <= 0:
+            continue
+        labels[index] += 1
+        leftover -= 1
+    return labels
 
 
 def _side_note(ax, y, text, color) -> None:
@@ -634,15 +677,20 @@ def rq5_credibility(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     quality_ax.set_xticklabels(judgments, rotation=20, ha="right")
     quality_ax.set_yticks(np.arange(len(heat.index)))
     quality_ax.set_yticklabels(heat.index)
-    quality_ax.set_xlabel(panel_a.get("xlabel", "Evidence-quality judgment"))
+    quality_ax.tick_params(axis="both", labelsize=9)
+    _gray_frame(quality_ax)
+    quality_ax.set_xlabel(panel_a.get("xlabel", "Evidence-quality judgment"), fontsize=10)
     _corner(quality_ax, panel_a.get("letter", "A"))
     for i in range(heat.shape[0]):
+        shown = _share_labels(heat.iloc[i].to_numpy(float))
         for j in range(heat.shape[1]):
             value = float(heat.iloc[i, j])
-            if value > 0:
-                quality_ax.text(j, i, f"{int(round(value))}%", ha="center", va="center", fontsize=6.2, color="white" if value >= 45 else "#4D4D4D")
-    colorbar = fig.colorbar(image, ax=quality_ax, fraction=0.03, pad=0.02)
-    colorbar.set_label(panel_a.get("colorbar", "Studies (%)"))
+            if shown[j] > 0:
+                quality_ax.text(j, i, f"{shown[j]}%", ha="center", va="center", fontsize=9, fontweight="bold", color="white" if value >= 45 else "#333333")
+    colorbar = fig.colorbar(image, ax=quality_ax, fraction=0.035, pad=0.02)
+    colorbar.set_label(panel_a.get("colorbar", "Studies (%)"), fontsize=9)
+    colorbar.ax.tick_params(labelsize=8, color="#C8C8C8")
+    colorbar.outline.set_edgecolor("#C8C8C8")
     tasks = _tasks(analysis_cfg)
     positions = np.arange(len(scenarios))[::-1]
     offsets = {task: offset for task, offset in zip(tasks, (0.22, 0.0, -0.22))}
@@ -656,21 +704,23 @@ def rq5_credibility(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
             studies = row["Studies"]
             if pd.notna(row["Median gain (pp)"]) and pd.notna(row["Bootstrap CI low"]) and pd.notna(studies) and float(studies) > 0:
                 _forest(forest_ax, float(row["Median gain (pp)"]), float(row["Bootstrap CI low"]), float(row["Bootstrap CI high"]), y, color, alpha=0.45 if float(studies) <= 6 else 1.0)
-    forest_ax.axvline(0, linestyle="--", color="#7A7A7A", lw=0.8)
+    forest_ax.axvline(0, linestyle="--", color="#B0B0B0", lw=0.8)
     forest_ax.set_yticks(positions)
-    forest_ax.set_yticklabels([scenario_labels.get(scenario, scenario) + (" †" if scenario in {"leakage_prevented_only", "related_samples_separated_only", "all_credibility_criteria_met"} else "") for scenario in scenarios])
-    forest_ax.set_xlabel(panel_b.get("xlabel", "Median gain (pp)"))
+    forest_ax.set_yticklabels([scenario_labels.get(scenario, scenario) for scenario in scenarios])
+    forest_ax.tick_params(axis="both", labelsize=9)
+    _gray_frame(forest_ax)
+    forest_ax.set_xlabel(panel_b.get("xlabel", "Median gain (pp)"), fontsize=10)
     _corner(forest_ax, panel_b.get("letter", "B"))
     _style(forest_ax, "x")
-    handles = [plt.Line2D([0], [0], marker="o", color=_task_color(fig_cfg, task), lw=1.1, label=task, markersize=4) for task in tasks]
-    forest_ax.legend(handles=handles, frameon=False, loc="lower right")
+    handles = [plt.Line2D([0], [0], marker="o", color=_task_color(fig_cfg, task), lw=1.1, label=task, markersize=5) for task in tasks]
+    forest_ax.legend(handles=handles, frameon=False, loc="lower right", fontsize=8.5)
     count_ax.set_xlim(0, len(tasks))
     count_ax.tick_params(axis="y", left=False, labelleft=False)
     count_ax.tick_params(axis="x", bottom=False, labelbottom=False)
     for spine in count_ax.spines.values():
         spine.set_visible(False)
     for index, task in enumerate(tasks):
-        count_ax.text(index + 0.5, 1.04, task[0], transform=count_ax.get_xaxis_transform(), ha="center", va="bottom", fontsize=8, fontweight="bold", color=_task_color(fig_cfg, task), clip_on=False)
+        count_ax.text(index + 0.5, 1.04, task[0], transform=count_ax.get_xaxis_transform(), ha="center", va="bottom", fontsize=9, fontweight="bold", color=_task_color(fig_cfg, task), clip_on=False)
     for index, task in enumerate(tasks):
         color = _task_color(fig_cfg, task)
         subset = sensitivity.loc[sensitivity["Task"].eq(task)]
@@ -678,9 +728,8 @@ def rq5_credibility(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
             if row["Scenario"] not in scenarios or pd.isna(row["Studies"]):
                 continue
             studies_n = int(row["Studies"])
-            count_ax.text(index + 0.5, positions[scenarios.index(row["Scenario"])], f"{studies_n}*" if 0 < studies_n <= 6 else str(studies_n), ha="center", va="center", fontsize=7, color=color)
-    forest_ax.text(0.0, -0.16, "† Six or fewer studies. Descriptive only; the wide intervals are not estimates of better performance.", transform=forest_ax.transAxes, ha="left", va="top", fontsize=6.2, clip_on=False)
-    fig.subplots_adjust(left=0.28, right=0.96, top=0.94, bottom=0.12, hspace=0.42)
+            count_ax.text(index + 0.5, positions[scenarios.index(row["Scenario"])], f"{studies_n}*" if 0 < studies_n <= 6 else str(studies_n), ha="center", va="center", fontsize=8.5, fontweight="bold", color=color)
+    fig.subplots_adjust(left=0.36, right=0.96, top=0.95, bottom=0.08, hspace=0.48)
     _frame_panels(fig, [[quality_ax, colorbar.ax], [forest_ax, count_ax]], fig_cfg, key)
     return save_figure(fig, fig_cfg, "rq5_credibility", fig_dir)
 

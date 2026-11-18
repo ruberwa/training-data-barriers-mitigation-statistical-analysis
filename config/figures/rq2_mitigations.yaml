@@ -1,9 +1,13 @@
 filename: rq2_mitigations
-width_mm: 360
-height_mm: 170
-layout: side_by_side
-card_share: height
+width_mm: 180
+height_mm: 230
+layout: stacked
+card_share: width
 outer_frame: false
+card:
+  edgecolor: "#C8C8C8"
+  linewidth: 0.9
+  outer_frame: false
 tables:
   strategies: rq2_mitigation_strategy
   types: rq1_barrier_type

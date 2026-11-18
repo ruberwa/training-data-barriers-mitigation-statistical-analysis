@@ -1,8 +1,13 @@
 filename: evidence_study_profile
 width_mm: 180
-height_mm: 102
+height_mm: 118
 layout: side_by_side
-outer_frame: true
+card_share: height
+outer_frame: false
+card:
+  edgecolor: "#C8C8C8"
+  linewidth: 0.9
+  outer_frame: false
 tables:
   master: study_master
 panels:

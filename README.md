@@ -73,6 +73,10 @@ python3 src/03_create_figures.py
 
 Figures are written to `results/figures/pdf/`, `results/figures/png/`, and `results/figures/tiff/`. The pass or fail record for each step is in `results/validation/`.
 
+## License
+
+The analysis code is under the MIT License (`LICENSE`). The dataset workbook is under CC-BY-4.0, described in [data/README.md](data/README.md). Cite this repository with [CITATION.cff](CITATION.cff).
+
 ## Documents
 
 - [Docs/01_Project-Setup.md](Docs/01_Project-Setup.md): what is in the repository

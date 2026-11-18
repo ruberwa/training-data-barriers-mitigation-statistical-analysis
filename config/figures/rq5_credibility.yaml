@@ -1,9 +1,13 @@
 filename: rq5_credibility
-width_mm: 240
-height_mm: 185
+width_mm: 180
+height_mm: 205
 layout: stacked
 card_share: width
 outer_frame: false
+card:
+  edgecolor: "#C8C8C8"
+  linewidth: 0.9
+  outer_frame: false
 exclude_scenarios:
   - mean_within_study
 tables:
