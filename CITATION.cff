@@ -12,7 +12,6 @@ authors:
   - given-names: Pacifique
     family-names: RUBERWA
     orcid: "https://orcid.org/0009-0005-5318-5656"
-    affiliation: Universidad de Extremadura
 repository-code: "https://github.com/ruberwa/training-data-barriers-statistical-analysis"
 license: MIT
 version: "1.0.0"

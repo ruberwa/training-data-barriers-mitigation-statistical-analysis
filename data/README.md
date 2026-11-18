@@ -162,6 +162,6 @@ Dataset file: `ARD-Analysis Ready Dataset.xlsx`
 
 ## Contact
 
-Author: Pacifique RUBERWA, Universidad de Extremadura, ruberwa3@gmail.com 
+Author: Pacifique RUBERWA 
 
 
