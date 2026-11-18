@@ -141,9 +141,15 @@ The data were extracted from primary experimental studies identified through the
 
 The primary researcher extracted information from the original publications, and two independent reviewers verified a random 30% subset of extracted records. The extraction architecture and coding procedures were designed to preserve links between study identification, application context, dataset characteristics, training-data barriers, mitigation strategies, performance results, and evidence-quality assessments.
 
+## License
+
+The analysis code is released under the MIT License. See `LICENSE` in the repository root.
+
+The dataset file `ARD-Analysis Ready Dataset.xlsx` is licensed under [Creative Commons Attribution 4.0 International (CC-BY-4.0)](https://creativecommons.org/licenses/by/4.0/).
+
 ## Recommended citation
 
-Please cite the associated systematic-review publication when using this dataset:
+Please cite the associated systematic-review publication when using this dataset. Until that paper is available, cite this repository using `CITATION.cff`.
 
 
 ## Data availability
@@ -156,6 +162,6 @@ Dataset file: `ARD-Analysis Ready Dataset.xlsx`
 
 ## Contact
 
-Author: 
+Author: Pacifique RUBERWA, Universidad de Extremadura, ruberwa3@gmail.com 
 
 

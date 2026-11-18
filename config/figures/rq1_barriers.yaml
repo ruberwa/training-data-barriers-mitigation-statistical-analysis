@@ -1,9 +1,13 @@
 filename: rq1_barriers
-width_mm: 340
-height_mm: 160
-layout: side_by_side
-card_share: height
+width_mm: 180
+height_mm: 220
+layout: stacked
+card_share: width
 outer_frame: false
+card:
+  edgecolor: "#C8C8C8"
+  linewidth: 0.9
+  outer_frame: false
 tables:
   types: rq1_barrier_type
   categories: rq1_barrier_category

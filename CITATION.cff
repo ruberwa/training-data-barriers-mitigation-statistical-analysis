@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this analysis or dataset, please cite it as below."
+title: "Training Data Barriers and Mitigation Strategies in Weed Detection, Classification, and Segmentation: A Systematic Review and Quantitative Synthesis"
+abstract: >-
+  Statistical analysis and reproducibility materials for a systematic review
+  and quantitative synthesis of training-data barriers and mitigation
+  strategies in weed detection, classification, and segmentation. The
+  repository includes the analysis-ready record of 199 included studies and
+  the scripts that build the tables, statistics, and figures.
+type: software
+authors:
+  - given-names: Pacifique
+    family-names: RUBERWA
+    orcid: "https://orcid.org/0009-0005-5318-5656"
+    affiliation: Universidad de Extremadura
+repository-code: "https://github.com/ruberwa/training-data-barriers-statistical-analysis"
+license: MIT
+version: "1.0.0"
+date-released: "2026-11-19"
+keywords:
+  - systematic review
+  - quantitative synthesis
+  - weed detection
+  - training data
+  - computer vision
+  - reproducibility
