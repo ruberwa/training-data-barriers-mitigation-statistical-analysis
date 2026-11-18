@@ -460,13 +460,13 @@ def _rq3_panel(fig, subspec, gains, summary, task, color, xlabel: str):
     if frame.empty:
         return
     count = len(frame)
-    grid = subspec.subgridspec(2, 1, height_ratios=[count, 1.6], hspace=0.0)
+    grid = subspec.subgridspec(2, 1, height_ratios=[1, 0.16], hspace=0.0)
     middle = fig.add_subplot(grid[0])
     middle_summary = fig.add_subplot(grid[1])
     y = np.arange(count)
     low = min(-5, float(frame["study_gain"].min()) - 2)
     high = max(10, float(frame["study_gain"].max()) + 2)
-    middle.scatter(frame["study_gain"], y, s=16, marker="s", color=color, zorder=3)
+    middle.scatter(frame["study_gain"], y, s=6, marker="s", color=color, zorder=3)
     middle.axvline(0, linestyle="--", color="black", linewidth=0.8)
     middle.set_ylim(-0.5, count - 0.5)
     middle.invert_yaxis()
@@ -474,7 +474,7 @@ def _rq3_panel(fig, subspec, gains, summary, task, color, xlabel: str):
     middle.set_yticks([])
     middle.tick_params(axis="x", labelbottom=False, length=0)
     middle.grid(True, axis="x", color="#E3E3E3", linewidth=0.5)
-    middle.set_title(task, loc="center", fontweight="bold", fontsize=9, pad=8)
+    middle.set_title(task, loc="center", fontweight="bold", fontsize=9, pad=6)
     middle_summary.set_facecolor("#E7E7E7")
     middle_summary.set_yticks([])
     for spine in middle_summary.spines.values():
@@ -482,13 +482,14 @@ def _rq3_panel(fig, subspec, gains, summary, task, color, xlabel: str):
     middle_summary.set_xlim(low, high)
     middle_summary.set_ylim(0, 1)
     middle_summary.axvline(0, linestyle="--", color="black", linewidth=0.8)
+    middle_summary.tick_params(axis="x", labelsize=7)
     median = float(summary["Median gain (pp)"])
     ci_low = float(summary["Bootstrap CI low"])
     ci_high = float(summary["Bootstrap CI high"])
     _forest(middle_summary, median, ci_low, ci_high, 0.5, color, marker="D", ms=5)
-    middle_summary.set_xlabel(xlabel)
-    middle_summary.text(0.02, 0.5, "Median", va="center", ha="left", fontsize=6, fontweight="bold", transform=middle_summary.transAxes)
-    middle_summary.text(0.98, 0.5, f"{median:.2f} [{ci_low:.2f}, {ci_high:.2f}]", va="center", ha="right", fontsize=6, fontweight="bold", transform=middle_summary.transAxes)
+    middle_summary.set_xlabel(xlabel, fontsize=8)
+    label_x = ci_high + (high - low) * 0.03
+    middle_summary.text(label_x, 0.5, f"Median {median:.2f} [{ci_low:.2f}, {ci_high:.2f}]", va="center", ha="left", fontsize=8, fontweight="bold", clip_on=False)
 
 
 def rq3_gains(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
@@ -502,7 +503,7 @@ def rq3_gains(stat_dir, ready_dir, fig_dir, fig_cfg, analysis_cfg):
     outer = fig.add_gridspec(1, len(tasks), wspace=0.16)
     for index, task in enumerate(tasks):
         _rq3_panel(fig, outer[index], gains, synthesis.loc[task], task, _task_color(fig_cfg, task), xlabel)
-    fig.subplots_adjust(top=0.94, bottom=0.08, left=0.03, right=0.99)
+    fig.subplots_adjust(top=0.94, bottom=0.10, left=0.04, right=0.98)
     return save_figure(fig, fig_cfg, "rq3_gains", fig_dir)
 
 
